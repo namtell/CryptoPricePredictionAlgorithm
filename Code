@@ -14,7 +14,7 @@ import requests
 from pandas import json_normalize
 
 #determine how many rows of data here
-lim = '2000' #querying 2 weeks back
+lim = '2000'
 
 df = pd.DataFrame()
 for i in coin_top10_sym:
@@ -84,10 +84,8 @@ for key, values in cor.items():
         
 # Printing top correlated coins results
 
-# Manually gone through the test results to identify these pairs.
+# Manually going through the test results to identify pairs with lowest lag values
 top = ['ETC_XMR', 'ETC_XEM', 'XEM_XMR', 'LTC_XMR', 'LTC_XEM', 'MIOTA_XMR', 'ZEC_XMR', 'BTC_XMR', 'BTC_XEM', 'XLM_XMR']
-#rep = ['NXT_LTC', 'XEM_NXT', 'XEM_LTC', 'XEM_IOT']
-#new = ['NXT_ETC', 'XEM_ETC', 'XEM_BTC', 'XEM_DASH','DASH_LTC', 'DASH_IOT']
 for key, values in cor.items():
     if key in top:
         print('\n')
@@ -104,13 +102,11 @@ df_plot = pd.DataFrame(index=df.index)
 df_plot['BTC'] = sc_x.fit_transform(df['BTC'].values.reshape(-1,1))
 df_plot['XMR'] = sc_x.fit_transform(df['XMR'].values.reshape(-1,1))
 
-# Plot 1- scaled overlay plot of DASH/ETH prices 
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
 plt.plot(df.index, df_plot['BTC'], color='blue')
 plt.plot(df.index, df_plot['XMR'], color='green')
-#plt.xlim(('2017-09-15', '2017-10-15'))
 plt.ylim((-4, 4))
 plt.legend(loc='lower left')
 plt.xlabel('Time')
@@ -122,7 +118,7 @@ import cryptocompare
 import requests
 import json
 import pandas as pd
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 import datetime
 from pytrends.request import TrendReq
 from sklearn.preprocessing import StandardScaler
@@ -156,7 +152,7 @@ coins.columns = pair
 
 from_date = coins.index[0].strftime('%Y-%m-%d') # Get date where the query started
 
-# Importing market cap data 
+# Importing market cap data already stored in csv file
 
 mc = pd.read_csv('mc_coins.csv').set_index('date') # Set index
 mc.index = pd.to_datetime(mc.index) # Make datetime object
@@ -165,8 +161,8 @@ mc = mc.resample('1h').pad() # Upsample from daily to hourly
 # Query stock data from Yahoo! Financial using pandas_datareader
 
 # Specify start and end time here
-start = datetime.datetime(2017, 8, 25)
-end = datetime.datetime(2017, 11, 17)
+start = datetime.datetime(2022, 1, 4)
+end = datetime.datetime(2022, 3, 24)
 
 amd = web.DataReader('AMD', 'yahoo', start, end)
 nvda = web.DataReader('NVDA', 'yahoo', start, end)
@@ -215,78 +211,11 @@ ggtrends_6 = pytrend.interest_over_time()
 ggtrends_6 = ggtrends_6.resample('1h').pad().drop(['isPartial'], axis='columns')
 ggtrends_6.columns = ['gg_gpu']
 
-# Scraping "CryptoCurrency" subreddit subscription growth data from redditmetrics.com
-import requests
-import demjson
-# Making API call
-URL = 'https://subredditstats.com/r/cryptocurrency'
-r = requests.get(URL)
-
-# Scraping the web
-
-json_data = r.text.split('embedded')[1].split('commentsPerHour')[2].split('subscriberCountTimeSeries')[1]
-print(json_data)
-a = json_data.split('pointSize')[0]
-b = a.strip()[:-1]
-c = b.replace('\n', '') # Locate and grab the data
-growth = demjson.decode(c) # Decode JSON data to python object
-rd_CryptoCurrency_g = pd.DataFrame(growth).set_index('y') # Put data in dataframe format and set index
-
-# Cleaning the data
-rd_CryptoCurrency_g = rd_CryptoCurrency_g[~rd_CryptoCurrency_g.index.duplicated(keep='first')] # Get rid of duplicates
-rd_CryptoCurrency_g.index = pd.to_datetime(rd_CryptoCurrency_g.index) # Make datetime object
-rd_CryptoCurrency_g = rd_CryptoCurrency_g[from_date:]
-rd_CryptoCurrency_g = rd_CryptoCurrency_g.resample('1h').pad() # Upsample from daily to hourly
-rd_CryptoCurrency_g.columns = ['rd_CrypCurr_g']
-
-#json_data = r.text.split('data: ')[2].split('pointSize')[0].strip()[:-1].replace('\n', '')
-#total = demjson.decode(json_data)
-#rd_CryptoCurrency_t = pd.DataFrame(total).set_index('y')
-#rd_CryptoCurrency_t = rd_CryptoCurrency_t[~rd_CryptoCurrency_t.index.duplicated(keep='first')]
-#rd_CryptoCurrency_t.index = pd.to_datetime(rd_CryptoCurrency_t.index)
-#rd_CryptoCurrency_t = rd_CryptoCurrency_t[from_date:]
-#rd_CryptoCurrency_t = rd_CryptoCurrency_t.resample('1h').pad()
-#rd_CryptoCurrency_t.columns = ['rd_CrypCurr_t']
-
-
-#check if there's duplicates
-#import collections
-#print([item for item, count in collections.Counter(rd_CryptoCurrency_t.index).items() if count > 1])
-#178284- 11/17
-
-# Scraping "bitcoin" subreddit subscription growth data from redditmetrics.com
-
-URL = 'https://subredditstats.com/r/bitcoin'
-r = requests.get(URL)
-json_data = r.text.split('data: ')[1].split('pointSize')[0].strip()[:-1].replace('\n', '')
-growth = demjson.decode(json_data)
-rd_bitcoin_g = pd.DataFrame(growth).set_index('y')
-rd_bitcoin_g = rd_bitcoin_g[~rd_bitcoin_g.index.duplicated(keep='first')]
-rd_bitcoin_g.index = pd.to_datetime(rd_bitcoin_g.index)
-rd_bitcoin_g = rd_bitcoin_g[from_date:]
-rd_bitcoin_g = rd_bitcoin_g.resample('1h').pad()
-rd_bitcoin_g.columns = ['rd_bitcoin_g']
-
-# Scraping "monero" subreddit subscription growth data from redditmetrics.com
-
-URL = 'https://subredditstats.com/r/monero'
-r = requests.get(URL)
-
-json_data = r.text.split('data: ')[1].split('pointSize')[0].strip()[:-1].replace('\n', '')
-growth = demjson.decode(json_data)
-rd_monero_g = pd.DataFrame(growth).set_index('y')
-rd_monero_g = rd_monero_g[~rd_monero_g.index.duplicated(keep='first')]
-rd_monero_g.index = pd.to_datetime(rd_monero_g.index)
-rd_monero_g = rd_monero_g[from_date:]
-rd_monero_g = rd_monero_g.resample('1h').pad()
-rd_monero_g.columns = ['rd_monero_g']
-
 # Joining data frames
-df = pd.concat([coins, amd, nvda, mc, ggtrends_1, ggtrends_2, ggtrends_3, ggtrends_4, ggtrends_5, ggtrends_6, ggtrends_7, rd_CryptoCurrency_g, rd_nem_g, rd_Iota_g], axis=1).dropna(how='any')
+df = pd.concat([coins, amd, nvda, mc, ggtrends_1, ggtrends_2, ggtrends_3, ggtrends_4, ggtrends_5, ggtrends_6], axis=1).dropna(how='any')
 df.to_csv('cap1_df.csv')
 
 # Feature Scaling
-
 df_scaled = df.copy(deep=True)
 
 sc_x = StandardScaler()
@@ -297,34 +226,14 @@ df_scaled['mc_monero'] = sc_x.fit_transform(df_scaled['mc_monero'].values.reshap
 df_scaled['gg_crypto'] = sc_x.fit_transform(df_scaled['gg_crypto'].values.reshape(-1,1))
 df_scaled['gg_bitcoin_p'] = sc_x.fit_transform(df_scaled['gg_bitcoin_p'].values.reshape(-1,1))
 df_scaled['gg_monero_p'] = sc_x.fit_transform(df_scaled['gg_monero_p'].values.reshape(-1,1))
-#df_scaled['gg_bitcoin_p'] = sc_x.fit_transform(df_scaled['gg_bitcoin_p'].values.reshape(-1,1))
 df_scaled['gg_bitcoin_w'] = sc_x.fit_transform(df_scaled['gg_bitcoin_w'].values.reshape(-1,1))
 df_scaled['gg_monero_w'] = sc_x.fit_transform(df_scaled['gg_monero_w'].values.reshape(-1,1))
 df_scaled['gg_gpu'] = sc_x.fit_transform(df_scaled['gg_gpu'].values.reshape(-1,1))
 df_scaled['amd'] = sc_x.fit_transform(df_scaled['amd'].values.reshape(-1,1))
 df_scaled['nvda'] = sc_x.fit_transform(df_scaled['nvda'].values.reshape(-1,1))
-df_scaled['rd_CrypCurr_g'] = sc_x.fit_transform(df_scaled['rd_CrypCurr_g'].values.reshape(-1,1))
-df_scaled['rd_bitcoin_g'] = sc_x.fit_transform(df_scaled['rd_bitcoin_g'].values.reshape(-1,1))
-df_scaled['rd_monero_g'] = sc_x.fit_transform(df_scaled['rd_monero_g'].values.reshape(-1,1))
-#df_scaled['rd_CrypCurr_t'] = sc_x.fit_transform(df_scaled['rd_CrypCurr_t'].values.reshape(-1,1))
 
 plt.plot(df_scaled.index, df_scaled['BTC'], color='blue')
 plt.plot(df_scaled.index, df_scaled['XMR'], color='green')
-#plt.plot(df_scaled.index, df_scaled['mc_nem'], color='blue')
-#plt.plot(df_scaled.index, df_scaled['mc_iota'], color='blue')
-#plt.plot(df_scaled.index, df_scaled['gg_crypto'], color='red')
-#plt.plot(df_scaled.index, df_scaled['gg_nem_p'], color='purple')
-#plt.plot(df_scaled.index, df_scaled['gg_iota_p'], color='yellow')
-#plt.plot(df_scaled.index, df_scaled['gg_bitcoin_p'], color='red')
-#plt.plot(df_scaled.index, df_scaled['gg_iota_w'], color='yellow')
-#plt.plot(df_scaled.index, df_scaled['gg_nem_w'], color='purple')
-#plt.plot(df_scaled.index, df_scaled['gg_gpu'], color='yellow')
-#plt.plot(df_scaled.index, df_scaled['amd'], color='purple')
-#plt.plot(df_scaled.index, df_scaled['nvda'], color='yellow')
-#plt.plot(df_scaled.index, df_scaled['rd_CrypCurr_g'], color='blue')
-#plt.plot(df_scaled.index, df_scaled['rd_nem_g'], color='blue')
-#plt.plot(df_scaled.index, df_scaled['rd_Iota_g'], color='blue')
-#plt.xlim(('2017-11-01', '2017-10-10'))
 plt.show()
 
 import pandas as pd
@@ -336,7 +245,7 @@ from sklearn.preprocessing import StandardScaler
 
 # Import dataframe 
 
-df = pd.read_csv('cap1_df.csv', index_col='time')
+df = pd.read_csv('cap1_df.csv', index_col=0)
 
 # Standardize the data
 
@@ -374,15 +283,15 @@ for i in diff.columns:
     
 # Splitting data to test/train sets
 
-X = diff[['IOT', 'amd', 'nvda', 'gg_crypto','gg_nem_p', 'gg_iota_p', 'gg_bitcoin_p', 'gg_nem_w', 'gg_iota_w','gg_gpu', 'rd_CrypCurr_g', 'rd_nem_g', 'rd_Iota_g']]
-#not using marketcap data!!
-Ytrain = pd.DataFrame(diff[:1310]['XEM'])
-Ytest = pd.DataFrame(diff[1310:]['XEM'])
+X = diff[['XMR', 'amd', 'nvda', 'gg_crypto','gg_bitcoin_p', 'gg_monero_p', 'gg_bitcoin_w', 'gg_monero_w','gg_gpu']]
+#Roughly 80% of data in train and 20% in test
+Ytrain = pd.DataFrame(diff[:1500]['BTC'])
+Ytest = pd.DataFrame(diff[1500:]['BTC'])
 
 # Performing ElasticNet Regression 
 
 en = ElasticNet(alpha=0.1, normalize=False)
-en.fit(X[:1310], Ytrain)
+en.fit(X[:1500], Ytrain)
 coef = list(en.coef_)
 count = 0
 for i in X.columns:
@@ -391,8 +300,7 @@ for i in X.columns:
     
 # Based on the ElasticNet results, manually identifying selected features (features with non-zero coefficients)
 
-sig = ['IOT', 'gg_crypto', 'gg_nem_w']
-#sig = ['IOT', 'amd', 'nvda', 'gg_crypto','gg_nem_p', 'gg_iota_p', 'gg_bitcoin_p', 'gg_nem_w', 'gg_iota_w','gg_gpu', 'rd_CrypCurr_g', 'rd_nem_g', 'rd_I
+sig = ['XMR', 'gg_bitcoin_p', 'gg_monero_p', 'gg_gpu']
 
 # Constructing dataframe
 
@@ -402,8 +310,8 @@ for i in sig:
     count = count + 1
 
 # Save dataframe
-X_sig[:1310].to_csv('X_train.csv')
-X_sig[1310:].to_csv('X_test.csv')
+X_sig[:1500].to_csv('X_train.csv')
+X_sig[1500:].to_csv('X_test.csv')
 Ytrain.to_csv('Y_train.csv')
 Ytest.to_csv('Y_test.csv')
 
@@ -424,10 +332,10 @@ from sklearn.metrics import mean_squared_error
 
 # Import/clean dataframes
 
-X_train = pd.read_csv('X_train.csv', index_col='time')
-X_test = pd.read_csv('X_test.csv', index_col='time')
-Y_train = pd.read_csv('Y_train.csv', index_col='time')
-Y_test = pd.read_csv('Y_test.csv', index_col='time')
+X_train = pd.read_csv('X_train.csv', index_col=0)
+X_test = pd.read_csv('X_test.csv', index_col=0)
+Y_train = pd.read_csv('Y_train.csv', index_col=0)
+Y_test = pd.read_csv('Y_test.csv', index_col=0)
 X = pd.concat([X_train, X_test])
 Y = pd.concat([Y_train, Y_test])
 
@@ -452,3 +360,48 @@ plt.title('PACF', loc='center')
 plt.ylabel('PACF')
 plt.xlabel('Lag(s)')
 plt.show()
+
+# ARIMAX
+
+# Building AR 2 with exogeneous variables
+arima_d = ARIMA.ARIMA(endog=Y_train['BTC'], exog=X_train, order=[1,0,0])
+arima_results_d = arima_d.fit()
+print(arima_results_d.summary())
+
+# Plotting the fitted values
+plt.plot(np.arange(len(Y_train)), Y_train, color='purple', label='Actual')
+plt.plot(np.arange(len(arima_results_d.fittedvalues)), arima_results_d.fittedvalues, color='green', label='Fitted Value')
+plt.xlim((0, 400))
+plt.title('ARIMAX Fitted Values')
+plt.xlabel('Time')
+plt.ylabel('Differenced Price')
+plt.legend()
+plt.show()
+print(X_test)
+
+# Out-of-sample prediction
+exog_d = X_test
+arima_results_ofs_d = arima_results_d.predict(exog=exog_d, start=exog_d.index[0], end=exog_d.index[-1])
+plt.plot(np.arange(len(Y_test)), Y_test, color='purple', label='Actual')
+plt.plot(np.arange(len(arima_results_ofs_d)), arima_results_ofs_d, color='green', label='Prediction')
+#plt.xlim((0, 50))
+plt.title('ARIMAX Out-of-Sample Prediction')
+plt.xlabel('Time')
+plt.ylabel('Differenced Price')
+plt.legend()
+plt.show()
+
+# Metric
+
+# Calculating mean squared error for steps 1-100
+expected = Y_test[:99]
+predictions = arima_results_ofs_d[:99]
+mse = mean_squared_error(expected, predictions)
+print('Mean Squared Error')
+print('Steps 1-100: %f' % mse)
+
+# Calculating mean squred error for steps 101-373
+expected = Y_test[100:]
+predictions = arima_results_ofs_d[100:]
+mse = mean_squared_error(expected, predictions)
+print('Steps 101-373: %f' % mse)
